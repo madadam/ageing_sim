@@ -4,7 +4,7 @@ use chain::{Chain, Event, Hash};
 use log;
 use message::{Request, Response};
 use node::{self, Node};
-use params::{Params, RelocationStrategy};
+use params::Params;
 use prefix::{Name, Prefix};
 use std::fmt;
 use std::mem;
@@ -317,22 +317,15 @@ impl Section {
     }
 
     fn check_relocate(&self, params: &Params, hash: &Hash) -> Option<Name> {
-        // Find the youngest or oldest node depending on the `RelocationStrategy` for which
-        // `hash % 2^age == 0`. If there is more than one, apply the tie-breaking rule.
+        // Find the oldest node for which `hash % 2^age == 0`. If there is more
+        // than one, apply the tie-breaking rule.
 
         let mut candidates = self.relocation_candidates(params, hash);
         if candidates.is_empty() {
             return None;
         }
 
-        match params.relocation_strategy {
-            RelocationStrategy::YoungestFirst => {
-                candidates.sort_by_key(|node| node.age());
-            }
-            RelocationStrategy::OldestFirst => {
-                candidates.sort_by_key(|node| u64::MAX - node.age());
-            }
-        }
+        candidates.sort_by_key(|node| u64::MAX - node.age());
 
         let age = candidates[0].age();
         let index = candidates
